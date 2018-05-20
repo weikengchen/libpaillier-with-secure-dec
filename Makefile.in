@@ -19,7 +19,7 @@ libpaillier.a: paillier.o
 	ar rc $@ $<
 
 test: test.o libpaillier.a
-	$(CC) -o $@ $(LDFLAGS) $^
+	$(CC) -o $@ $(LDFLAGS) $^ -lgmp -lm
 
 %.o: %.c *.h Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
