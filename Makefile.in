@@ -27,7 +27,7 @@ test: test.o libpaillier.a
 # installation
 
 dist: AUTHORS COPYING INSTALL Makefile.in NEWS README aclocal.m4 \
-	paillier.c paillier.h configure configure.ac install-sh m4 missing mkinstalldirs
+	paillier.c paillier.h test.c configure configure.ac install-sh m4 missing mkinstalldirs
 	rm -rf $(DISTNAME)
 	mkdir $(DISTNAME)
 	cp -r $^ $(DISTNAME)

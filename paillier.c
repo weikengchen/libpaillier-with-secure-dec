@@ -121,7 +121,7 @@ paillier_keygen( int modulusbits,
 
 	mpz_clear(p);
 	mpz_clear(q);
-  gmp_randclear(rand);
+	gmp_randclear(rand);
 }
 
 paillier_ciphertext_t*
