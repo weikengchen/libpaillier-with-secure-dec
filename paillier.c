@@ -15,10 +15,21 @@
 */
 
 #include <stdlib.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <gmp.h>
 #include "paillier.h"
+
+void paillier_inline_mpz_recalloc(mpz_t rp, mp_size_t target){
+	mp_size_t original = mpz_size(rp);
+
+	if(original != target){
+		mp_limb_t *tmp = mpz_limbs_modify(rp, target);
+		mpn_zero(&tmp[original], target - original);
+		mpz_limbs_finish(rp, target);
+	}
+}
 
 void
 init_rand( gmp_randstate_t rand, paillier_get_rand_t get_rand, int bytes )
@@ -165,11 +176,116 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_init(res->m);
 	}
 
-	mpz_powm(res->m, ct->c, prv->lambda, pub->n_squared);
-	mpz_sub_ui(res->m, res->m, 1);
-	mpz_div(res->m, res->m, pub->n);
-	mpz_mul(res->m, res->m, prv->x);
-	mpz_mod(res->m, res->m, pub->n);
+	int nbits = pub->bits;
+	int nlimbs = (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
+
+	int nbits_2 = nbits * 2;
+	int nlimbs_2 = (nbits_2 + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS; 
+
+	mpz_t tmp_1;
+	mpz_init_set_ui(tmp_1, 1);
+
+	mpz_t tmp;
+	mpz_init2(tmp, nbits_2);
+
+	paillier_inline_mpz_recalloc(tmp_1, nlimbs);
+
+	const mp_limb_t (*c_ro);
+	const mp_limb_t (*n_squared_ro);
+	const mp_limb_t (*n_ro);
+	const mp_limb_t (*lambda_ro);
+	mp_limb_t *m_w;
+	const mp_limb_t (*x_ro);
+	const mp_limb_t (*m_ro);
+	const mp_limb_t (*tmp_1_ro);
+	const mp_limb_t (*tmp_ro);
+	mp_limb_t *tmp_w;
+
+	{
+		// res->m = (ct->c)^priv mod n^2
+
+		paillier_inline_mpz_recalloc(res->m, nlimbs_2);
+		paillier_inline_mpz_recalloc(ct->c, nlimbs_2);
+		paillier_inline_mpz_recalloc(pub->n_squared, nlimbs_2);
+		paillier_inline_mpz_recalloc(prv->lambda, ceil(nbits / GMP_NUMB_BITS));
+
+		mp_limb_t scratch_powm[mpn_sec_powm_itch(nlimbs_2, nbits, nlimbs_2)];
+	
+		c_ro = mpz_limbs_read(ct->c);
+		n_squared_ro = mpz_limbs_read(pub->n_squared);
+		lambda_ro = mpz_limbs_read(prv->lambda);
+		m_w = mpz_limbs_write(res->m, nlimbs_2);
+
+		mpn_sec_powm(m_w, c_ro, nlimbs_2, lambda_ro, nbits, n_squared_ro, nlimbs_2, scratch_powm);
+		mpz_limbs_finish(res->m, nlimbs_2);
+	}
+
+	{
+		// tmp = res->m - 1 mod n^2
+
+		mp_limb_t scratch_sub[mpn_sec_sub_1_itch(nlimbs_2)];
+		
+		tmp_1_ro = mpz_limbs_read(tmp_1);
+		m_ro = mpz_limbs_read(res->m);
+		tmp_w = mpz_limbs_write(tmp, nlimbs_2);
+
+		mpn_sec_sub_1(tmp_w, m_ro, nlimbs_2, tmp_1_ro[0], scratch_sub);
+		mpz_limbs_finish(tmp, nlimbs_2);
+	}
+
+	{
+		// res->m = tmp / n  mod n
+		paillier_inline_mpz_recalloc(pub->n, nlimbs);
+
+		mp_limb_t scratch_div_qr[mpn_sec_div_qr_itch(nlimbs_2, nlimbs)];
+
+		n_ro = mpz_limbs_read(pub->n);
+		m_w = mpz_limbs_write(res->m, nlimbs_2 - nlimbs + 1);
+		tmp_w = mpz_limbs_modify(tmp, nlimbs_2);
+
+		mpn_sec_div_qr(m_w, tmp_w, nlimbs_2, n_ro, nlimbs, scratch_div_qr);
+ 
+		mpz_limbs_finish(res->m, nlimbs_2 - nlimbs + 1);		
+		mpz_limbs_finish(tmp, nlimbs_2);
+	}
+
+	{
+		//tmp = res->m * prv->x
+
+		paillier_inline_mpz_recalloc(prv->x, nlimbs);
+
+		tmp_w = mpz_limbs_write(tmp, nlimbs_2);
+		x_ro = mpz_limbs_read(prv->x);
+		m_ro = mpz_limbs_read(res->m);
+
+		mp_limb_t scratch_mul[mpn_sec_mul_itch(nlimbs, nlimbs)];
+
+		mpn_sec_mul(tmp_w, m_ro, nlimbs, x_ro, nlimbs, scratch_mul);
+
+		mpz_limbs_finish(tmp, nlimbs_2);
+	}
+
+	{
+		// tmp = tmp mod n
+
+		tmp_w = mpz_limbs_modify(tmp, nlimbs_2);
+
+		mp_limb_t scratch_div_r[mpn_sec_div_r_itch(nlimbs_2, nlimbs)];
+		mpn_sec_div_r(tmp_w, nlimbs_2, n_ro, nlimbs, scratch_div_r);
+
+		mpz_limbs_finish(tmp, nlimbs);
+	}
+
+	{
+		// res->m = tmp
+
+		m_w = mpz_limbs_write(res->m, nlimbs);
+		tmp_ro = mpz_limbs_read(tmp);
+
+		mpn_copyi(m_w, tmp_ro, nlimbs);
+	}
+
+	mpz_clears(tmp, tmp_1, NULL);
 
 	return res;
 }

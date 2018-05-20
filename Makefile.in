@@ -21,9 +21,6 @@ libpaillier.a: paillier.o
 test: test.o libpaillier.a
 	$(CC) -o $@ $(LDFLAGS) $^
 
-perf: perf.o libpaillier.a
-	$(CC) -o $@ $(LDFLAGS) $^
-
 %.o: %.c *.h Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
 
@@ -66,7 +63,7 @@ configure: configure.ac aclocal.m4
 
 # remove everything an installing user can rebuild
 clean:
-	rm -rf *.o *.a perf $(DISTNAME) *.tar.gz TAGS *~
+	rm -rf *.o *.a $(DISTNAME) *.tar.gz TAGS *~
 
 # remove everything a package developer can rebuild
 distclean: clean
