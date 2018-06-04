@@ -26,5 +26,13 @@ int main(){
 	
 	printf("%s\n", test_dec);
 	
+	paillier_freeplaintext(pt_dec);
+	paillier_freeplaintext(pt);
+	
+	paillier_freeciphertext(ct);
+	
+	paillier_freepubkey(ppk);
+	paillier_freeprvkey(psk);
+	
 	return 0;
 }
