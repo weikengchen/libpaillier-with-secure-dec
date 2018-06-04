@@ -1,3 +1,5 @@
+#include <gmp.h>
+
 /*
 	libpaillier - A library implementing the Paillier cryptosystem.
 
