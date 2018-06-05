@@ -176,8 +176,6 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_init(res->m);
 	}
 
-	printf("a\n");
-
 	int nbits = pub->bits;
 	int nlimbs = (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
 
@@ -191,8 +189,6 @@ paillier_dec( paillier_plaintext_t* res,
 	mpz_init2(tmp, nbits_2);
 
 	paillier_inline_mpz_recalloc(tmp_1, nlimbs);
-
-	printf("b\n");
 
 	const mp_limb_t (*c_ro);
 	const mp_limb_t (*n_squared_ro);
@@ -208,39 +204,23 @@ paillier_dec( paillier_plaintext_t* res,
 	{
 		// res->m = (ct->c)^priv mod n^2
 
-		printf("b/0\n");
 		paillier_inline_mpz_recalloc(res->m, nlimbs_2);
-		printf("b/1\n");
-	
-		printf("%p", ct->c);
 		paillier_inline_mpz_recalloc(ct->c, nlimbs_2);
-		printf("b/2\n");
 		paillier_inline_mpz_recalloc(pub->n_squared, nlimbs_2);
-		printf("b/3\n");
 		paillier_inline_mpz_recalloc(prv->lambda, (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS);
-
-		printf("b/a\n");
 
 		mp_limb_t scratch_powm[mpn_sec_powm_itch(nlimbs_2, nbits, nlimbs_2)];
 	
-
-		printf("b/b\n");
-
 		c_ro = mpz_limbs_read(ct->c);
 		n_squared_ro = mpz_limbs_read(pub->n_squared);
 		lambda_ro = mpz_limbs_read(prv->lambda);
 		m_w = mpz_limbs_write(res->m, nlimbs_2);
 
-		printf("b/c\n");
-
 		mpn_sec_powm(m_w, c_ro, nlimbs_2, lambda_ro, nbits, n_squared_ro, nlimbs_2, scratch_powm);
-
-		printf("b/d\n");
 
 		mpz_limbs_finish(res->m, nlimbs_2);
 	}
 
-	printf("c\n");
 
 	{
 		// tmp = res->m - 1 mod n^2
@@ -255,7 +235,6 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
 
-	printf("d\n");
 
 	{
 		// res->m = tmp / n  mod n
@@ -273,7 +252,6 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
 
-	printf("e\n");
 
 	{
 		//tmp = res->m * prv->x
@@ -291,7 +269,6 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
 
-	printf("f\n");
 
 	{
 		// tmp = tmp mod n
@@ -304,8 +281,6 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_limbs_finish(tmp, nlimbs);
 	}
 
-	printf("g\n");
-
 	{
 		// res->m = tmp
 
@@ -315,7 +290,6 @@ paillier_dec( paillier_plaintext_t* res,
 		mpn_copyi(m_w, tmp_ro, nlimbs);
 	}
 
-	printf("h\n");
 
 	mpz_clears(tmp, tmp_1, NULL);
 
