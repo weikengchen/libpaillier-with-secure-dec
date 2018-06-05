@@ -176,10 +176,10 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_init(res->m);
 	}
 
-	int nbits = pub->bits;
+	int nbits = 2048;
 	int nlimbs = (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
 
-	int nbits_2 = nbits * 2;
+	int nbits_2 = 4096;
 	int nlimbs_2 = (nbits_2 + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS; 
 
 	mpz_t tmp_1;
