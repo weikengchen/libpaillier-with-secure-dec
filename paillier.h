@@ -133,6 +133,12 @@ void paillier_keygen( int modulusbits,
 					 paillier_plaintext_t* pt,
 					 paillier_get_rand_t get_rand );
 
+/* Add: Rerandomization */
+
+paillier_ciphertext_t* paillier_rerand(paillier_ciphertext_t* ct,
+					paillier_pubkey_t* pub,
+					paillier_get_rand_t get_rand );
+
 /*
 	Decrypt the given ciphertext with the given key pair. If res is not
 	null, its contents will be overwritten with the result. Otherwise, a

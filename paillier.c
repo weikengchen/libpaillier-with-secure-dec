@@ -143,7 +143,7 @@ paillier_enc( paillier_ciphertext_t* res,
 	while( mpz_cmp(r, pub->n) >= 0 );
 
 	/* compute ciphertext */
-	
+
 	if( !res )
 	{
 		res = (paillier_ciphertext_t*) malloc(sizeof(paillier_ciphertext_t));
@@ -164,6 +164,35 @@ paillier_enc( paillier_ciphertext_t* res,
 	return res;
 }
 
+/* add: rerandomization */
+
+paillier_ciphertext_t*
+paillier_rerand(paillier_ciphertext_t* ct,
+					paillier_pubkey_t* pub,
+					paillier_get_rand_t get_rand )
+{
+	mpz_t r;
+	gmp_randstate_t rand;
+
+	/* pick random blinding factor */
+
+	mpz_init(r);
+ 	init_rand(rand, get_rand, pub->bits / 8 + 1);
+	do
+		mpz_urandomb(r, rand, pub->bits);
+	while( mpz_cmp(r, pub->n) >= 0 );
+
+	mpz_powm(r, r, pub->n, pub->n_squared);
+
+	mpz_mul(ct->c, ct->c, r);
+	mpz_mod(ct->c, ct->c, pub->n_squared);
+
+	mpz_clear(r);
+	gmp_randclear(rand);
+
+	return ct;
+}
+
 paillier_plaintext_t*
 paillier_dec( paillier_plaintext_t* res,
 							paillier_pubkey_t* pub,
@@ -180,7 +209,7 @@ paillier_dec( paillier_plaintext_t* res,
 	int nlimbs = (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
 
 	int nbits_2 = nbits * 2;
-	int nlimbs_2 = (nbits_2 + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS; 
+	int nlimbs_2 = (nbits_2 + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
 
 	mpz_t tmp_1;
 	mpz_init_set_ui(tmp_1, 1);
@@ -210,7 +239,7 @@ paillier_dec( paillier_plaintext_t* res,
 		paillier_inline_mpz_recalloc(prv->lambda, (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS);
 
 		mp_limb_t scratch_powm[mpn_sec_powm_itch(nlimbs_2, nbits, nlimbs_2)];
-	
+
 		c_ro = mpz_limbs_read(ct->c);
 		n_squared_ro = mpz_limbs_read(pub->n_squared);
 		lambda_ro = mpz_limbs_read(prv->lambda);
@@ -226,7 +255,7 @@ paillier_dec( paillier_plaintext_t* res,
 		// tmp = res->m - 1 mod n^2
 
 		mp_limb_t scratch_sub[mpn_sec_sub_1_itch(nlimbs_2)];
-		
+
 		tmp_1_ro = mpz_limbs_read(tmp_1);
 		m_ro = mpz_limbs_read(res->m);
 		tmp_w = mpz_limbs_write(tmp, nlimbs_2);
@@ -247,8 +276,8 @@ paillier_dec( paillier_plaintext_t* res,
 		tmp_w = mpz_limbs_modify(tmp, nlimbs_2);
 
 		mpn_sec_div_qr(m_w, tmp_w, nlimbs_2, n_ro, nlimbs, scratch_div_qr);
- 
-		mpz_limbs_finish(res->m, nlimbs_2 - nlimbs + 1);		
+
+		mpz_limbs_finish(res->m, nlimbs_2 - nlimbs + 1);
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
 
@@ -319,10 +348,10 @@ paillier_plaintext_t*
 paillier_plaintext_from_ui( unsigned long int x )
 {
 	paillier_plaintext_t* pt;
-	
+
 	pt = (paillier_plaintext_t*) malloc(sizeof(paillier_plaintext_t));
 	mpz_init_set_ui(pt->m, x);
-	
+
 	return pt;
 }
 
@@ -400,7 +429,7 @@ paillier_ciphertext_from_bytes( void* c, int len )
 	return ct;
 }
 
-void* 
+void*
 paillier_ciphertext_to_bytes( int len,
 															paillier_ciphertext_t* ct )
 {
@@ -519,7 +548,7 @@ paillier_get_rand_devurandom( void* buf, int len )
 	paillier_get_rand_file(buf, len, "/dev/urandom");
 }
 
-paillier_ciphertext_t* 
+paillier_ciphertext_t*
 paillier_create_enc_zero()
 {
 	paillier_ciphertext_t* ct;
