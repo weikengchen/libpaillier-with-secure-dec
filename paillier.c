@@ -24,7 +24,7 @@
 void paillier_inline_mpz_recalloc(mpz_t rp, mp_size_t target){
 	mp_size_t original = mpz_size(rp);
 
-	if(original != target){
+	if(original < target){
 		mp_limb_t *tmp = mpz_limbs_modify(rp, target);
 		mpn_zero(&tmp[original], target - original);
 		mpz_limbs_finish(rp, target);
@@ -143,7 +143,7 @@ paillier_enc( paillier_ciphertext_t* res,
 	while( mpz_cmp(r, pub->n) >= 0 );
 
 	/* compute ciphertext */
-	
+
 	if( !res )
 	{
 		res = (paillier_ciphertext_t*) malloc(sizeof(paillier_ciphertext_t));
@@ -164,6 +164,35 @@ paillier_enc( paillier_ciphertext_t* res,
 	return res;
 }
 
+/* add: rerandomization */
+
+paillier_ciphertext_t*
+paillier_rerand(paillier_ciphertext_t* ct,
+					paillier_pubkey_t* pub,
+					paillier_get_rand_t get_rand )
+{
+	mpz_t r;
+	gmp_randstate_t rand;
+
+	/* pick random blinding factor */
+
+	mpz_init(r);
+ 	init_rand(rand, get_rand, pub->bits / 8 + 1);
+	do
+		mpz_urandomb(r, rand, pub->bits);
+	while( mpz_cmp(r, pub->n) >= 0 );
+
+	mpz_powm(r, r, pub->n, pub->n_squared);
+
+	mpz_mul(ct->c, ct->c, r);
+	mpz_mod(ct->c, ct->c, pub->n_squared);
+
+	mpz_clear(r);
+	gmp_randclear(rand);
+
+	return ct;
+}
+
 paillier_plaintext_t*
 paillier_dec( paillier_plaintext_t* res,
 							paillier_pubkey_t* pub,
@@ -180,7 +209,7 @@ paillier_dec( paillier_plaintext_t* res,
 	int nlimbs = (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
 
 	int nbits_2 = nbits * 2;
-	int nlimbs_2 = (nbits_2 + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS; 
+	int nlimbs_2 = (nbits_2 + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
 
 	mpz_t tmp_1;
 	mpz_init_set_ui(tmp_1, 1);
@@ -214,16 +243,17 @@ paillier_dec( paillier_plaintext_t* res,
 		paillier_inline_mpz_recalloc(res->m, nlimbs_2);
 		paillier_inline_mpz_recalloc(ct->c, nlimbs_2);
 		paillier_inline_mpz_recalloc(pub->n_squared, nlimbs_2);
-		paillier_inline_mpz_recalloc(prv->lambda, ceil(nbits / GMP_NUMB_BITS));
+		paillier_inline_mpz_recalloc(prv->lambda, (nbits + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS);
 
 		mp_limb_t scratch_powm[mpn_sec_powm_itch(nlimbs_2, nbits, nlimbs_2)];
-	
+
 		c_ro = mpz_limbs_read(ct->c);
 		n_squared_ro = mpz_limbs_read(pub->n_squared);
 		lambda_ro = mpz_limbs_read(prv->lambda);
 		m_w = mpz_limbs_write(res->m, nlimbs_2);
 
 		mpn_sec_powm(m_w, c_ro, nlimbs_2, lambda_ro, nbits, n_squared_ro, nlimbs_2, scratch_powm);
+
 		mpz_limbs_finish(res->m, nlimbs_2);
 	}
 
@@ -233,11 +263,12 @@ paillier_dec( paillier_plaintext_t* res,
 	//printf("Computing tmp = res->m - 1 mod n^2\n");
 	//mpz_sub_ui(tmp2_debug, tmp1_debug, 1);
 	//gmp_printf("Supposed to be %Zd\n", tmp2_debug);
+
 	{
 		// tmp = res->m - 1 mod n^2
 
 		mp_limb_t scratch_sub[mpn_sec_sub_1_itch(nlimbs_2)];
-		
+
 		tmp_1_ro = mpz_limbs_read(tmp_1);
 		m_ro = mpz_limbs_read(res->m);
 		tmp_w = mpz_limbs_write(tmp, nlimbs_2);
@@ -256,6 +287,7 @@ paillier_dec( paillier_plaintext_t* res,
 
 	//mpz_mul(tmp1_debug, tmp2_debug, pub->n);
 	//gmp_printf("Double-check: old tmp = %Zd\n", tmp1_debug);
+
 	{
 		// res->m = tmp / n  mod n
 		paillier_inline_mpz_recalloc(pub->n, nlimbs);
@@ -267,7 +299,6 @@ paillier_dec( paillier_plaintext_t* res,
 		tmp_w = mpz_limbs_modify(tmp, nlimbs_2);
 
 		mpn_sec_div_qr(m_w, tmp_w, nlimbs_2, n_ro, nlimbs, scratch_div_qr);
- 
 		mpz_limbs_finish(res->m, nlimbs_2 - nlimbs);		
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
@@ -280,6 +311,7 @@ paillier_dec( paillier_plaintext_t* res,
 	//printf("Computing tmp = res->m * prv->x\n");
 	//mpz_mul(tmp1_debug, tmp2_debug, prv->x);
 	//gmp_printf("Supposed to be %Zd\n", tmp1_debug);
+
 	{
 		//tmp = res->m * prv->x
 
@@ -300,6 +332,7 @@ paillier_dec( paillier_plaintext_t* res,
 	//printf("Computing tmp = tmp mod n\n");
 	//mpz_mod(tmp2_debug, tmp1_debug, pub->n);
 	//gmp_printf("Supposed to be %Zd\n", tmp2_debug);
+
 	{
 		// tmp = tmp mod n
 
@@ -353,10 +386,10 @@ paillier_plaintext_t*
 paillier_plaintext_from_ui( unsigned long int x )
 {
 	paillier_plaintext_t* pt;
-	
+
 	pt = (paillier_plaintext_t*) malloc(sizeof(paillier_plaintext_t));
 	mpz_init_set_ui(pt->m, x);
-	
+
 	return pt;
 }
 
@@ -434,7 +467,7 @@ paillier_ciphertext_from_bytes( void* c, int len )
 	return ct;
 }
 
-void* 
+void*
 paillier_ciphertext_to_bytes( int len,
 															paillier_ciphertext_t* ct )
 {
@@ -553,7 +586,7 @@ paillier_get_rand_devurandom( void* buf, int len )
 	paillier_get_rand_file(buf, len, "/dev/urandom");
 }
 
-paillier_ciphertext_t* 
+paillier_ciphertext_t*
 paillier_create_enc_zero()
 {
 	paillier_ciphertext_t* ct;
