@@ -201,6 +201,13 @@ paillier_dec( paillier_plaintext_t* res,
 	const mp_limb_t (*tmp_ro);
 	mp_limb_t *tmp_w;
 
+	//printf("Computing res->m = (ct->c) ^ priv mod n^2\n");
+	//mpz_t tmp1_debug, tmp2_debug;
+	//mpz_init(tmp1_debug);
+	//mpz_init(tmp2_debug);
+	//mpz_powm(tmp1_debug, ct->c, prv->lambda, pub->n_squared);
+	//gmp_printf("Supposed to be %Zd\n", tmp1_debug);
+
 	{
 		// res->m = (ct->c)^priv mod n^2
 
@@ -220,6 +227,12 @@ paillier_dec( paillier_plaintext_t* res,
 		mpz_limbs_finish(res->m, nlimbs_2);
 	}
 
+	//gmp_printf("Turned out to be %Zd\n", res->m);
+
+
+	//printf("Computing tmp = res->m - 1 mod n^2\n");
+	//mpz_sub_ui(tmp2_debug, tmp1_debug, 1);
+	//gmp_printf("Supposed to be %Zd\n", tmp2_debug);
 	{
 		// tmp = res->m - 1 mod n^2
 
@@ -232,7 +245,17 @@ paillier_dec( paillier_plaintext_t* res,
 		mpn_sec_sub_1(tmp_w, m_ro, nlimbs_2, tmp_1_ro[0], scratch_sub);
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
+	//gmp_printf("Turned out to be %Zd\n", tmp);
 
+
+	//printf("Computing res->m = tmp / n mod n\n");
+	//mpz_tdiv_q(tmp1_debug, tmp2_debug, pub->n);
+	//mpz_mod(tmp2_debug, tmp1_debug, pub->n);
+
+	//gmp_printf("Supposed to be %Zd\n", tmp2_debug);
+
+	//mpz_mul(tmp1_debug, tmp2_debug, pub->n);
+	//gmp_printf("Double-check: old tmp = %Zd\n", tmp1_debug);
 	{
 		// res->m = tmp / n  mod n
 		paillier_inline_mpz_recalloc(pub->n, nlimbs);
@@ -240,15 +263,23 @@ paillier_dec( paillier_plaintext_t* res,
 		mp_limb_t scratch_div_qr[mpn_sec_div_qr_itch(nlimbs_2, nlimbs)];
 
 		n_ro = mpz_limbs_read(pub->n);
-		m_w = mpz_limbs_write(res->m, nlimbs_2 - nlimbs + 1);
+		m_w = mpz_limbs_write(res->m, nlimbs_2 - nlimbs);
 		tmp_w = mpz_limbs_modify(tmp, nlimbs_2);
 
 		mpn_sec_div_qr(m_w, tmp_w, nlimbs_2, n_ro, nlimbs, scratch_div_qr);
  
-		mpz_limbs_finish(res->m, nlimbs_2 - nlimbs + 1);		
+		mpz_limbs_finish(res->m, nlimbs_2 - nlimbs);		
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
+	//mpz_mod(res->m, res->m, pub->n);
+	//gmp_printf("Turned out to be %Zd\n", res->m);
 
+	//mpz_mul(tmp1_debug, res->m, pub->n);
+	//gmp_printf("Double-check: old tmp = %Zd\n", tmp1_debug);
+
+	//printf("Computing tmp = res->m * prv->x\n");
+	//mpz_mul(tmp1_debug, tmp2_debug, prv->x);
+	//gmp_printf("Supposed to be %Zd\n", tmp1_debug);
 	{
 		//tmp = res->m * prv->x
 
@@ -264,7 +295,11 @@ paillier_dec( paillier_plaintext_t* res,
 
 		mpz_limbs_finish(tmp, nlimbs_2);
 	}
+	//gmp_printf("Turned out to be %Zd\n", tmp);
 
+	//printf("Computing tmp = tmp mod n\n");
+	//mpz_mod(tmp2_debug, tmp1_debug, pub->n);
+	//gmp_printf("Supposed to be %Zd\n", tmp2_debug);
 	{
 		// tmp = tmp mod n
 
@@ -275,6 +310,7 @@ paillier_dec( paillier_plaintext_t* res,
 
 		mpz_limbs_finish(tmp, nlimbs);
 	}
+	//gmp_printf("Turned out to be %Zd\n", tmp);
 
 	{
 		// res->m = tmp
@@ -283,7 +319,11 @@ paillier_dec( paillier_plaintext_t* res,
 		tmp_ro = mpz_limbs_read(tmp);
 
 		mpn_copyi(m_w, tmp_ro, nlimbs);
+
+		mpz_limbs_finish(res->m, nlimbs);
 	}
+
+	//gmp_printf("m = %Zd\n", res->m);
 
 	mpz_clears(tmp, tmp_1, NULL);
 
