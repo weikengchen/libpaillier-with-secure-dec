@@ -284,4 +284,4 @@ paillier_ciphertext_t *paillier_create_enc_zero ();
 */
 #define PAILLIER_BITS_TO_BYTES(n) ((n) % 8 ? (n) / 8 + 1 : (n) / 8)
 
-#endif PAILLIER_WITH_CONSTANT_TIME_DEC
+#endif 
