@@ -1,3 +1,6 @@
+#ifndef PAILLIER_WITH_CONSTANT_TIME_DEC
+#define PAILLIER_WITH_CONSTANT_TIME_DEC
+
 #include <gmp.h>
 
 /*
@@ -55,8 +58,7 @@
 	This represents a Paillier public key, which is basically just the
 	modulus n. The other values should be considered private.
 */
-typedef struct
-{
+typedef struct {
 	int bits;  /* e.g., 1024 */
 	mpz_t n;   /* public modulus n = p q */
 	mpz_t n_squared; /* cached to avoid recomputing */
@@ -69,8 +71,7 @@ typedef struct
   function (lambda) of the modulus. The other value is kept for
   efficiency and should be considered private.
 */
-typedef struct
-{
+typedef struct {
 	mpz_t lambda;    /* lambda(n), i.e., lcm(p-1,q-1) */
 	mpz_t x;   /* cached to avoid recomputing */
 } paillier_prvkey_t;
@@ -79,8 +80,7 @@ typedef struct
   This is a (semantic rather than structural) type for plaintexts.
   These can be converted to and from ASCII strings and byte arrays.
 */
-typedef struct
-{
+typedef struct {
 	mpz_t m;
 } paillier_plaintext_t;
 
@@ -89,8 +89,7 @@ typedef struct
   These can also be converted to or from byte arrays (for example in
   order to store them in a file).
 */
-typedef struct
-{
+typedef struct {
 	mpz_t c;
 } paillier_ciphertext_t;
 
@@ -103,7 +102,7 @@ typedef struct
   your own such function, it should fill in "len" random bytes in the
   array "buf".
 */
-typedef void (*paillier_get_rand_t) ( void* buf, int len );
+typedef void (*paillier_get_rand_t) (void *buf, int len);
 
 /*****************
  BASIC OPERATIONS
@@ -117,10 +116,10 @@ typedef void (*paillier_get_rand_t) ( void* buf, int len );
   paillier_get_rand_devrandom and paillier_get_rand_devurandom may be
   passed as the final argument.
 */
-void paillier_keygen( int modulusbits,
-			paillier_pubkey_t** pub,
-											paillier_prvkey_t** prv,
-											paillier_get_rand_t get_rand );
+void paillier_keygen (int modulusbits,
+                      paillier_pubkey_t **pub,
+                      paillier_prvkey_t **prv,
+                      paillier_get_rand_t get_rand);
 
 /*
 	Encrypt the given plaintext with the given public key using
@@ -128,26 +127,26 @@ void paillier_keygen( int modulusbits,
 	contents will be overwritten with the result. Otherwise, a new
 	paillier_ciphertext_t will be allocated and returned.
 */
- paillier_ciphertext_t* paillier_enc( paillier_ciphertext_t* res,
-					 paillier_pubkey_t* pub,
-					 paillier_plaintext_t* pt,
-					 paillier_get_rand_t get_rand );
+paillier_ciphertext_t *paillier_enc (paillier_ciphertext_t *res,
+                                     paillier_pubkey_t *pub,
+                                     paillier_plaintext_t *pt,
+                                     paillier_get_rand_t get_rand);
 
 /* Add: Rerandomization */
 
-paillier_ciphertext_t* paillier_rerand(paillier_ciphertext_t* ct,
-					paillier_pubkey_t* pub,
-					paillier_get_rand_t get_rand );
+paillier_ciphertext_t *paillier_rerand (paillier_ciphertext_t *ct,
+                                        paillier_pubkey_t *pub,
+                                        paillier_get_rand_t get_rand);
 
 /*
 	Decrypt the given ciphertext with the given key pair. If res is not
 	null, its contents will be overwritten with the result. Otherwise, a
 	new paillier_plaintext_t will be allocated and returned.
 */
-paillier_plaintext_t* paillier_dec( paillier_plaintext_t* res,
-																		paillier_pubkey_t* pub,
-																		paillier_prvkey_t* prv,
-																		paillier_ciphertext_t* ct );
+paillier_plaintext_t *paillier_dec (paillier_plaintext_t *res,
+                                    paillier_pubkey_t *pub,
+                                    paillier_prvkey_t *prv,
+                                    paillier_ciphertext_t *ct);
 
 /*****************************
  USE OF ADDITIVE HOMOMORPHISM
@@ -158,10 +157,10 @@ paillier_plaintext_t* paillier_dec( paillier_plaintext_t* res,
 	public key and store the result in the contents of res, which is
 	assumed to have already been allocated.
 */
-void paillier_mul( paillier_pubkey_t* pub,
-									 paillier_ciphertext_t* res,
-									 paillier_ciphertext_t* ct0,
-									 paillier_ciphertext_t* ct1 );
+void paillier_mul (paillier_pubkey_t *pub,
+                   paillier_ciphertext_t *res,
+                   paillier_ciphertext_t *ct0,
+                   paillier_ciphertext_t *ct1);
 
 /*
   Raise the given ciphertext to power pt and store the result in res,
@@ -169,10 +168,10 @@ void paillier_mul( paillier_pubkey_t* pub,
   x, then res will become an encryption of x * pt mod n, where n is
   the modulus in pub.
 */
-void paillier_exp( paillier_pubkey_t* pub,
-									 paillier_ciphertext_t* res,
-									 paillier_ciphertext_t* ct,
-									 paillier_plaintext_t* pt );
+void paillier_exp (paillier_pubkey_t *pub,
+                   paillier_ciphertext_t *res,
+                   paillier_ciphertext_t *ct,
+                   paillier_plaintext_t *pt);
 
 /****************************
  PLAINTEXT IMPORT AND EXPORT
@@ -182,17 +181,20 @@ void paillier_exp( paillier_pubkey_t* pub,
   Allocate and initialize a paillier_plaintext_t from an unsigned long
   integer, an array of bytes, or a null terminated string.
 */
-paillier_plaintext_t* paillier_plaintext_from_ui( unsigned long int x );
-paillier_plaintext_t* paillier_plaintext_from_bytes( void* m, int len );
-paillier_plaintext_t* paillier_plaintext_from_str( char* str );
+paillier_plaintext_t *paillier_plaintext_from_ui (unsigned long int x);
+
+paillier_plaintext_t *paillier_plaintext_from_bytes (void *m, int len);
+
+paillier_plaintext_t *paillier_plaintext_from_str (char *str);
 
 /*
 	Export a paillier_plaintext_t as a null terminated string or an
 	array of bytes. In either case the result is allocated for the
 	caller and the original paillier_plaintext_t is unchanged.
 */
-char* paillier_plaintext_to_str( paillier_plaintext_t* pt );
-void* paillier_plaintext_to_bytes( int len, paillier_plaintext_t* pt );
+char *paillier_plaintext_to_str (paillier_plaintext_t *pt);
+
+void *paillier_plaintext_to_bytes (int len, paillier_plaintext_t *pt);
 
 /*****************************
  CIPHERTEXT IMPORT AND EXPORT
@@ -203,8 +205,9 @@ void* paillier_plaintext_to_bytes( int len, paillier_plaintext_t* pt );
 	bytes. These behave like the corresponding functions for
 	paillier_plaintext_t's.
 */
-paillier_ciphertext_t* paillier_ciphertext_from_bytes( void* c, int len );
-void* paillier_ciphertext_to_bytes( int len, paillier_ciphertext_t* ct );
+paillier_ciphertext_t *paillier_ciphertext_from_bytes (void *c, int len);
+
+void *paillier_ciphertext_to_bytes (int len, paillier_ciphertext_t *ct);
 
 /**********************
  KEY IMPORT AND EXPORT
@@ -217,11 +220,14 @@ void* paillier_ciphertext_to_bytes( int len, paillier_ciphertext_t* ct );
 	from a hex string. In all cases, the returned value is allocated for
 	the caller and the values passed are unchanged.
 */
-char* paillier_pubkey_to_hex( paillier_pubkey_t* pub );
-char* paillier_prvkey_to_hex( paillier_prvkey_t* prv );
-paillier_pubkey_t* paillier_pubkey_from_hex( char* str );
-paillier_prvkey_t* paillier_prvkey_from_hex( char* str,
-																						 paillier_pubkey_t* pub );
+char *paillier_pubkey_to_hex (paillier_pubkey_t *pub);
+
+char *paillier_prvkey_to_hex (paillier_prvkey_t *prv);
+
+paillier_pubkey_t *paillier_pubkey_from_hex (char *str);
+
+paillier_prvkey_t *paillier_prvkey_from_hex (char *str,
+                                             paillier_pubkey_t *pub);
 
 /********
  CLEANUP
@@ -232,10 +238,13 @@ paillier_prvkey_t* paillier_prvkey_from_hex( char* str,
   functions within library and should be used when the structures are
   no longer needed.
 */
-void paillier_freepubkey( paillier_pubkey_t* pub );
-void paillier_freeprvkey( paillier_prvkey_t* prv );
-void paillier_freeplaintext( paillier_plaintext_t* pt );
-void paillier_freeciphertext( paillier_ciphertext_t* ct );
+void paillier_freepubkey (paillier_pubkey_t *pub);
+
+void paillier_freeprvkey (paillier_prvkey_t *prv);
+
+void paillier_freeplaintext (paillier_plaintext_t *pt);
+
+void paillier_freeciphertext (paillier_ciphertext_t *ct);
 
 /***********
  MISC STUFF
@@ -253,8 +262,9 @@ void paillier_freeciphertext( paillier_ciphertext_t* ct );
 	better choice unless you have a specific reason to believe it is
 	insufficient.
 */
-void paillier_get_rand_devrandom(  void* buf, int len );
-void paillier_get_rand_devurandom( void* buf, int len );
+void paillier_get_rand_devrandom (void *buf, int len);
+
+void paillier_get_rand_devurandom (void *buf, int len);
 
 /*
 	This function just allocates and returns a paillier_ciphertext_t
@@ -266,10 +276,12 @@ void paillier_get_rand_devurandom( void* buf, int len );
 	quickly allocate a paillier_ciphertext_t in which to place some
 	later result.
 */
-paillier_ciphertext_t* paillier_create_enc_zero();
+paillier_ciphertext_t *paillier_create_enc_zero ();
 
 /*
 	Just a utility used internally when we need round a number of bits
 	up the number of bytes necessary to hold them.
 */
 #define PAILLIER_BITS_TO_BYTES(n) ((n) % 8 ? (n) / 8 + 1 : (n) / 8)
+
+#endif PAILLIER_WITH_CONSTANT_TIME_DEC
